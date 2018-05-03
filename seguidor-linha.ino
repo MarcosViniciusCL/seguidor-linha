@@ -4,65 +4,74 @@ AF_DCMotor motor_um(1); //Seleciona o motor 1
 AF_DCMotor motor_dois(2); //Seleciona o motor 4
 AF_DCMotor motor_tres(3); //Seleciona o motor 1
 AF_DCMotor motor_quatro(4); //Seleciona o motor 4
- 
-int SENSOR1, SENSOR2, SENSOR3;
+
+#define PIN_SE A4
+#define PIN_SD A5
+
+int SENSOR_E, SENSOR_D;
  
 //deslocamentos de calibracao
 int leftOffset = 0, rightOffset = 0, centre = 0;
 //pinos para a velocidade e direcao do motor
 int speed1 = 3, speed2 = 11, direction1 = 12, direction2 = 13;
 //velocidade inicial e deslocamento de rotacao
-int startSpeed = 200, rotate = 50;
+int startSpeed = 200, rotate = 75;
 //limiar do sensor
 int threshold = 5;
 //velocidades iniciais dos motores esquerdo e direito
 int left = startSpeed, right = startSpeed;
- 
+
+int limite_se = 75, limite_sd = 80; 
+
 //Rotina de calibracao do sensor
-void calibrate()
-{
+void calibrate(){
  for (int x=0; x<10; x++) //Executa 10 vezes para obter uma media
  {
    delay(100);
-   SENSOR1 = analogRead(0);
-   SENSOR2 = analogRead(1);
-   SENSOR3 = analogRead(2);
-   leftOffset = leftOffset + SENSOR1;
-   centre = centre + SENSOR2;
-   rightOffset = rightOffset + SENSOR3;
+   SENSOR_E = analogRead(PIN_SE);
+   SENSOR_D = analogRead(PIN_SD);
+   
+   leftOffset = leftOffset + SENSOR_E;
+   //centre = centre + SENSOR_D;
+   rightOffset = rightOffset + SENSOR_D;
    delay(100);
  }
  //obtem a media para cada sensor
  leftOffset = leftOffset /10;
  rightOffset = rightOffset /10;
- centre = centre / 10;
+ //centre = centre / 10;
  //calcula os deslocamentos para os sensores esquerdo e direito
- leftOffset = centre - leftOffset;
- rightOffset = centre - rightOffset;
+ //leftOffset = centre - leftOffset;
+ //rightOffset = centre - rightOffset;
 }
  
-void setup()
-{
+void setup(){
   //calibrate();
-  delay(3000);
+  Serial.begin(9600);
+  Serial.println("Fora Temer");
 }
 
 void lerSensores(){
-  SENSOR1 = analogRead(0) + leftOffset;
-  SENSOR2 = analogRead(1);
-  SENSOR3 = analogRead(2) + rightOffset;
+  SENSOR_E = analogRead(PIN_SE) + leftOffset;
+  SENSOR_D = analogRead(PIN_SD) + rightOffset;
+  Serial.print("SE: "); Serial.println(SENSOR_E);
+  Serial.print("SD: "); Serial.println(SENSOR_D);
 }
 
 //Essa função faz o robô virar a esquerda(vai para Cuba)
 void vireEsquerda(){
-  left = startSpeed + rotate;
+  Serial.println("ESQUERDA");
+  left = startSpeed;
   right = startSpeed - rotate;
+  setVelocidadeMotores();
 }
 
 //Vira o robô para a direita(Bolsonaro 2018)
 void vireDireita(){
+  Serial.println("DIREITA");
   left = startSpeed - rotate;
-  right = startSpeed + rotate;
+  right = startSpeed;
+  setVelocidadeMotores();
 }
 
 void vireEsquerdaParado(){
@@ -78,6 +87,7 @@ void vireDireitaParado(){
 }
 
 void seguirFrente(){
+  Serial.println("FRENTE");
   left = startSpeed;
   right = startSpeed;
   setVelocidadeMotores();
@@ -99,24 +109,16 @@ void loop()
   //utiliza a mesma velocidade em ambos os motores
   left = startSpeed;
   right = startSpeed;
- 
-  //le os sensores e adiciona os deslocamentos
- // lerSensores();
-  seguirFrente();
+  lerSensores();
   
-  delay(3000);
-  
-  //Se SENSOR1 for maior do que o sensor do centro + limiar,
-  //vire para a direita
-  vireEsquerdaParado();
-  delay(3000);
-  
-  
-  //Se SENSOR3 for maior do que o sensor do centro + limiar,
-  //vire para a esquerda
-    vireDireitaParado();
-  delay(3000);
- 
-  //Envia os valores de velocidade para os motores  
+  if(SENSOR_E <= limite_se){
+    vireEsquerda();
+  }
+  else if(SENSOR_D <= limite_sd){ 
+    vireDireita();
+  }
+  else{
+    seguirFrente();
+  }  
 }
 
